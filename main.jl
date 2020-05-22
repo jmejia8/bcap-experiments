@@ -1,51 +1,33 @@
 import LinearAlgebra: norm
 import Statistics: mean, std
-using Distributed
-using SharedArrays
-@everywhere using BCAP
 using Plots
 plotly(legend=false)
+
+include("distributed.jl")
+addProcesses(7)
+
+
+@everywhere using BCAP
 @everywhere include("test-target-algorithms.jl")
 
 
 function F(x, y)
         mean_y = mean(y.instance_values, dims=2)[:,1]
         not_solved = .!y.solved_instances
+        r = 0.01norm(x,1)
 
-        m = norm(mean_y[ not_solved ])
-        if isnan(m)
-            m = 0.0
+        if sum(not_solved) == 0
+            return r
         end
 
-        n = 1.0 +  log10(1.0 + m)
+        m = (mean_y[ not_solved ])
+
+        I = m .> 1000
+
+        m[I] = min.(900, 10log10.(m[I]))
 
 
-        m + (10^n)*sum(not_solved) + 0.005norm(x,1)
-end
-
-function target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed = 1, calls_per_instance = 1)
-    if typeof(benchmark) <: Instance
-        return targetAlgorithm(Φ, benchmark, seed)
-    end
-
-
-    Errors_shared = SharedArray{Float64}(length(benchmark), calls_per_instance)
-
-
-    @sync @distributed for i = 1:length(benchmark)
-        for r = 1:calls_per_instance
-            err = targetAlgorithm(Φ, benchmark[i], seed)
-
-            Errors_shared[i, r] = err
-        end
-    end
-
-    Errors = Matrix(Errors_shared)
-
-    Errors_shared = nothing
-
-    return  Errors
-
+        mean(m) + 1e3sum(not_solved) + r
 end
 
 
@@ -58,15 +40,20 @@ function run_experiment(algorithm, nrun = 1)
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(algorithm)
     parameters = Parameters(bounds, parmstype)
 
-    benchmark = TestTargetAlgorithms.getBenchmark(2)
+    benchmark = TestTargetAlgorithms.getBenchmark(10)
 
-    parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
+    # parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
 
-    bcap = BCAP_config(p = 3)
-    res = configure(parallel_target, parameters, benchmark, debug = true, ul_func = F, bcap_config=bcap)
+    bcap = BCAP_config()
+    res = configure(targetAlgorithm, parameters, benchmark, budget=200, debug = true, ul_func = F, bcap_config=bcap)
 
     display(res)
 
+    for sol in res.population
+        @show sol.x
+        @show sol.F
+        @show sol.f
+    end
 
     res
 end
@@ -92,17 +79,15 @@ end
 
 function deplot()
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(:DE)
-    benchmark = TestTargetAlgorithms.getBenchmark(2)
-
-    # benchmark = benchmark[8:10]
-    parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
-
+    benchmark = TestTargetAlgorithms.getBenchmark(10)
 
     ff(x, y) = begin
-        p = [50, x, y]
-        r = BCAP.call_target_algorithm(parallel_target, p, benchmark, calls_per_instance=1)
+        p = [150, x, y]
+        r = BCAP.call_target_algorithm(targetAlgorithm, p, benchmark, calls_per_instance=1, Errors_shared = SharedArray{Float64}(length(benchmark), 1))
         ll_y = BCAP.LLSolution(  instance_values = r )
-        sum(ll_y.solved_instances)
+
+        F(x, ll_y)
+        #sum(ll_y.solved_instances)
     end
 
     x = range(0, 2, length=50)
@@ -111,31 +96,63 @@ function deplot()
     println("Plotting...")
     surface(x, y, ff)
 
+
+
 end
 
 function ecaplot()
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(:ECA)
     benchmark = TestTargetAlgorithms.getBenchmark(2)
 
-    # benchmark = benchmark[8:10]
-    parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
+
+    ff(x, y) = begin
+        p = [50, x, y]
+        r = BCAP.call_target_algorithm(targetAlgorithm, p, benchmark, calls_per_instance=1, Errors_shared = SharedArray{Float64}(length(benchmark), 1))
+        ll_y = BCAP.LLSolution(  instance_values = r )
+
+        F(x, ll_y)
+        #sum(ll_y.solved_instances)
+    end
+
+    x = 2:20
+    y = range(0, 5, length=50)
+
+    println("Plotting...")
+    # plot(y, s->ff(2, s), markershape=:o  )
+    surface(x, y, ff)
+
+end
+
+
+function randecaplot()
+    bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(:ECA)
+    benchmark = TestTargetAlgorithms.getBenchmark(10)
 
 
     ff(x, y) = begin
         p = [50, x, y]
-        r = BCAP.call_target_algorithm(parallel_target, p, benchmark, calls_per_instance=1)
+        r = BCAP.call_target_algorithm(targetAlgorithm, p, benchmark, calls_per_instance=1, Errors_shared = SharedArray{Float64}(length(benchmark), 1))
         ll_y = BCAP.LLSolution(  instance_values = r )
 
-        log.(1 + F(x, ll_y))
+        F(x, ll_y)
         #sum(ll_y.solved_instances)
     end
 
-    x = range(0, 10, length=150)
+    n = 30
+    x = rand(2:20, n)
+    y = 5rand(n)
+
+    z = [ ff(a, b) for a = x for b = y ]
 
     println("Plotting...")
-    plot(x, s->ff(2, s), markershape=:o  )
+    # plot(y, s->ff(2, s), markershape=:o  )
+    scatter(x, y, z)
 
 end
 
-main()
+
+# main()
+# deplot()
 # ecaplot()
+
+randecaplot()
