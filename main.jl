@@ -13,7 +13,7 @@ addProcesses(4)
 function F(x, y)
         mean_y = mean(y.instance_values, dims=2)[:,1]
         not_solved = .!y.solved_instances
-        r = 0.01norm(x,1)
+        r = 0.001norm(x,1)
 
         if sum(not_solved) == 0
             return r
@@ -48,11 +48,11 @@ function run_experiment(algorithm, nrun = 1)
 
     display(res)
 
-    for sol in res.population
-        @show sol.x
-        @show sol.F
-        @show sol.f
-    end
+    # for sol in res.population
+    #     @show sol.x
+    #     @show sol.F
+    #     @show sol.f
+    # end
 
     res
 end
