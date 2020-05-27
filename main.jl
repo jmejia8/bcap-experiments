@@ -48,7 +48,7 @@ function run_experiment(algorithm, nrun, benchmark_name)
         benchmark = TestTargetAlgorithms.getBenchmark(:BPP)
     end
 
-    bcap = BCAP_config()
+    bcap = BCAP_config(K_ll = 1)
     res = configure(targetAlgorithm, parameters, benchmark, budget=200, debug = true, ul_func = F, bcap_config=bcap)
 
     display(res)
@@ -70,7 +70,7 @@ function main()
     runs = 10
     benchmark_name = :cec17_10
 
-    for a = [:DE]
+    for a = [:ECA, :DE, :PSO]
         for t = 1:runs
             fname = "output/$(a)-$(benchmark_name)-$(t).jld"
 
