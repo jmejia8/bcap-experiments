@@ -1,9 +1,9 @@
 import LinearAlgebra: norm
 import Statistics: mean, std
-
+using JLD
 
 include("distributed.jl")
-addProcesses(4)
+addProcesses(3)
 
 
 @everywhere using BCAP
@@ -30,7 +30,7 @@ function F(x, y)
 end
 
 
-function run_experiment(algorithm, nrun = 1)
+function run_experiment(algorithm, nrun, benchmark_name)
 
     @info("Initializing...")
 
@@ -39,9 +39,14 @@ function run_experiment(algorithm, nrun = 1)
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(algorithm)
     parameters = Parameters(bounds, parmstype)
 
-    benchmark = TestTargetAlgorithms.getBenchmark(2)
-
-    # parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
+    benchmark = []
+    if benchmark_name == :cec17_2
+        benchmark = TestTargetAlgorithms.getBenchmark(2)
+    elseif benchmark_name == :cec17_10
+        benchmark = TestTargetAlgorithms.getBenchmark(10)
+    elseif benchmark_name == :BPP
+        benchmark = TestTargetAlgorithms.getBenchmark(:BPP)
+    end
 
     bcap = BCAP_config()
     res = configure(targetAlgorithm, parameters, benchmark, budget=200, debug = true, ul_func = F, bcap_config=bcap)
@@ -59,16 +64,31 @@ end
 
 
 function main()
-    runs = 1
+
+    !isdir("output") && mkdir("output")
+
+    runs = 10
+    benchmark_name = :cec17_10
 
     for a = [:DE]
         for t = 1:runs
+            fname = "output/$(a)-$(benchmark_name)-$(t).jld"
+
+            if isfile(fname)
+                @info "Solved "
+                println(fname)
+            end
+
             println("========================================")
             println("========================================")
             println("========================================")
             println(a, t)
             println("========================================")
-            return run_experiment(a, t)
+            res = run_experiment(a, t, benchmark_name)
+            @info "Saving in "
+            println(fname)
+
+            save(fname, "result", res)
         end
     end
 end
