@@ -49,7 +49,7 @@ function getBenchmark(p::Symbol)
 
     for i = 1:length(nams)
 
-        push!(benchmark, Instance(ops[i], "--instance /home/jesus/develop/repos/GGA-CGT/instances/$(nams[i])", i))
+        push!(benchmark, Instance(ops[i], " --max_gen 100 --instance /home/jesus/develop/repos/GGA-CGT/instances/$(nams[i])", i))
 
     end
 
@@ -161,6 +161,7 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
     settings = (flags .* vals)
     instance_str = instance.value
 
+
     cmd = string(exe_name, " ", prod(settings), instance_str, " ", seed_flag, " ", string(seed))
     cmd  = split(cmd)
 
@@ -169,9 +170,9 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
     try
         fx = parse(Float64, read(`$cmd`, String))
     catch
-        println(cmd)
+        println(`$cmd`)
 
-        error("Target algorithm fail, penalizing result 1e6.")
+        @error("Target algorithm fail, penalizing result 1e6.")
         println(Φ)
         fx = 1e6
     end
@@ -181,7 +182,7 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
         if o < 0
             println("Check instance ")
             display(instance)
-            error("Ill-posed benchmark")
+            @error("Ill-posed benchmark")
             return 0
         end
         fx = o
