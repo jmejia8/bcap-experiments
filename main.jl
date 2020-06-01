@@ -3,7 +3,7 @@ import Statistics: mean, std
 using JLD
 
 include("distributed.jl")
-addProcesses(3)
+addProcesses(4)
 
 
 @everywhere using BCAP
@@ -70,7 +70,10 @@ function main()
     runs = 10
     benchmark_name = :cec17_10
 
-    for a = [:ECA, :DE, :PSO]
+    for a = [:ECA, :DE, :PSO, :GGA]
+        if a == :GGA
+            benchmark_name = :BPP
+        end
         for t = 1:runs
             fname = "output/$(a)-$(benchmark_name)-$(t).jld"
 
@@ -87,6 +90,7 @@ function main()
             res = run_experiment(a, t, benchmark_name)
             @info "Saving in "
             println(fname)
+
 
             save(fname, "result", res)
         end
