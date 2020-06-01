@@ -1,6 +1,6 @@
 using Bilevel
 using JLD
-import DelimitedFiles.writedlm
+import DelimitedFiles: writedlm, readdlm
 include("distributed.jl")
 addProcesses(3)
 
@@ -30,8 +30,30 @@ function gen_data(Φ, algorithm, benchmark)
     arr
 end
 
-function main()
+function gen_data_irace()
+    for algorithm in [:DE, :PSO, :ECA]
+        for benchmark in [:cec17_10]
+            t = readdlm("irace_csv/irace-$(algorithm)-$(benchmark).csv", ',')
+            for r in 1:10
+                fname = "csv/irace-$(algorithm)-$(benchmark)-$(r).csv"
+
+                isfile(fname) && continue
+                @info("Generating $fname")
+                Φ = t[r,:]
+                @show(Φ)
+
+                arr = gen_data(Φ, algorithm, getBenchmark(benchmark))
+                writedlm(fname, arr, ',' )
+
+                println("--------------------")
+            end
+        end
+    end
+end
+
+function gen_data_bcap()
     !isdir("csv") && mkdir("csv")
+
     algorithm = :DE
     benchmark = :cec17_2
 
@@ -60,6 +82,10 @@ function main()
     end
 
 
+end
+
+function main()
+    gen_data_irace()
 end
 
 
