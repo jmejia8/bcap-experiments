@@ -23,7 +23,7 @@ function F(x, y)
 
         I = m .> 1000
 
-        m[I] = min.(900, 10log10.(m[I]))
+        m[I] = min.(999.0, m[I])
 
 
         mean(m) + 1e3sum(not_solved) + r
