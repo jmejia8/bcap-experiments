@@ -87,6 +87,8 @@ function getTargetAlgorithm(name)
         return DE_bounds, DE_parmstype, DE_target
     elseif name == :PSO
         return PSO_bounds, PSO_parmstype, PSO_target
+    elseif name == :ABC
+        return ABC_bounds, ABC_parmstype, ABC_target
     elseif name == :GGA
         b = [
              50   0    0    1   1  0   1;
@@ -96,6 +98,21 @@ function getTargetAlgorithm(name)
     else
         @error "Only `:ECA`, `:DE`, `:PSO` or `GGA` are permited."
     end
+end
+
+function ABC_target(Φ, instance, seed = 0)
+    seed!(seed)
+    Φ[1] = round(Φ[1])
+    Φ[3] = round(Φ[3])
+
+    a, fx = ABC(instance.value[:f], instance.value[:bounds],
+                max_evals = 10000size(instance.value[:bounds], 2),
+                N = Int(Φ[1]),
+                Ne = Φ[2],
+                No = Int(Φ[3])
+                )
+
+    fx < instance.optimum ? 0.0 : fx
 end
 
 function ECA_target(Φ, instance, seed = 0)
