@@ -1,6 +1,6 @@
 import LinearAlgebra: norm
 import Statistics: mean, std
-
+using JLD
 
 include("distributed.jl")
 addProcesses(4)
@@ -13,7 +13,7 @@ addProcesses(4)
 function F(x, y)
         mean_y = mean(y.instance_values, dims=2)[:,1]
         not_solved = .!y.solved_instances
-        r = 0.01norm(x,1)
+        r = 0.001norm(x,1)
 
         if sum(not_solved) == 0
             return r
@@ -23,14 +23,14 @@ function F(x, y)
 
         I = m .> 1000
 
-        m[I] = min.(900, 10log10.(m[I]))
+        m[I] = min.(999.0, m[I])
 
 
         mean(m) + 1e3sum(not_solved) + r
 end
 
 
-function run_experiment(algorithm, nrun = 1)
+function run_experiment(algorithm, nrun, benchmark_name)
 
     @info("Initializing...")
 
@@ -39,36 +39,60 @@ function run_experiment(algorithm, nrun = 1)
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(algorithm)
     parameters = Parameters(bounds, parmstype)
 
-    benchmark = TestTargetAlgorithms.getBenchmark(2)
+    benchmark = []
+    if benchmark_name == :cec17_2
+        benchmark = TestTargetAlgorithms.getBenchmark(2)
+    elseif benchmark_name == :cec17_10
+        benchmark = TestTargetAlgorithms.getBenchmark(10)
+    elseif benchmark_name == :BPP
+        benchmark = TestTargetAlgorithms.getBenchmark(:BPP)
+    end
 
-    # parallel_target(Φ, benchmark, seed) = target_algorithm_parallel(targetAlgorithm, Φ, benchmark; seed=seed)
-
-    bcap = BCAP_config()
+    bcap = BCAP_config(K_ll = 1)
     res = configure(targetAlgorithm, parameters, benchmark, budget=200, debug = true, ul_func = F, bcap_config=bcap)
 
     display(res)
 
-    for sol in res.population
-        @show sol.x
-        @show sol.F
-        @show sol.f
-    end
+    # for sol in res.population
+    #     @show sol.x
+    #     @show sol.F
+    #     @show sol.f
+    # end
 
     res
 end
 
 
 function main()
-    runs = 1
 
-    for a = [:DE]
+    !isdir("output") && mkdir("output")
+
+    runs = 10
+    benchmark_name = :cec17_10
+
+    for a = [:ECA, :DE, :PSO, :GGA]
+        if a == :GGA
+            benchmark_name = :BPP
+        end
         for t = 1:runs
+            fname = "output/$(a)-$(benchmark_name)-$(t).jld"
+
+            if isfile(fname)
+                @info "Solved "
+                println(fname)
+            end
+
             println("========================================")
             println("========================================")
             println("========================================")
             println(a, t)
             println("========================================")
-            return run_experiment(a, t)
+            res = run_experiment(a, t, benchmark_name)
+            @info "Saving in "
+            println(fname)
+
+
+            save(fname, "result", res)
         end
     end
 end

@@ -49,7 +49,7 @@ function getBenchmark(p::Symbol)
 
     for i = 1:length(nams)
 
-        push!(benchmark, Instance(ops[i], "--instance /home/jesus/develop/repos/GGA-CGT/instances/$(nams[i])", i))
+        push!(benchmark, Instance(ops[i], " --max_gen 100 --instance /home/jesus/develop/repos/GGA-CGT/instances/$(nams[i])", i))
 
     end
 
@@ -87,6 +87,8 @@ function getTargetAlgorithm(name)
         return DE_bounds, DE_parmstype, DE_target
     elseif name == :PSO
         return PSO_bounds, PSO_parmstype, PSO_target
+    elseif name == :ABC
+        return ABC_bounds, ABC_parmstype, ABC_target
     elseif name == :GGA
         b = [
              50   0    0    1   1  0   1;
@@ -96,6 +98,21 @@ function getTargetAlgorithm(name)
     else
         @error "Only `:ECA`, `:DE`, `:PSO` or `GGA` are permited."
     end
+end
+
+function ABC_target(Φ, instance, seed = 0)
+    seed!(seed)
+    Φ[1] = round(Φ[1])
+    Φ[3] = round(Φ[3])
+
+    a, fx = ABC(instance.value[:f], instance.value[:bounds],
+                max_evals = 10000size(instance.value[:bounds], 2),
+                N = Int(Φ[1]),
+                Ne = Φ[2],
+                No = Int(Φ[3])
+                )
+
+    fx < instance.optimum ? 0.0 : fx
 end
 
 function ECA_target(Φ, instance, seed = 0)
@@ -161,6 +178,7 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
     settings = (flags .* vals)
     instance_str = instance.value
 
+
     cmd = string(exe_name, " ", prod(settings), instance_str, " ", seed_flag, " ", string(seed))
     cmd  = split(cmd)
 
@@ -169,9 +187,9 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
     try
         fx = parse(Float64, read(`$cmd`, String))
     catch
-        println(cmd)
+        println(`$cmd`)
 
-        error("Target algorithm fail, penalizing result 1e6.")
+        @error("Target algorithm fail, penalizing result 1e6.")
         println(Φ)
         fx = 1e6
     end
@@ -181,7 +199,7 @@ function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = Str
         if o < 0
             println("Check instance ")
             display(instance)
-            error("Ill-posed benchmark")
+            @error("Ill-posed benchmark")
             return 0
         end
         fx = o
