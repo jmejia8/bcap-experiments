@@ -1,6 +1,7 @@
 using Bilevel
 using JLD
 import DelimitedFiles: writedlm, readdlm
+import Statistics: mean, median, std
 include("distributed.jl")
 addProcesses(3)
 
@@ -62,7 +63,7 @@ function gen_data_bcap()
     println("=======================================")
 
     for algorithm in [:DE, :PSO, :ECA]
-        for benchmark in [:cec17_2, :cec17_10]
+        for benchmark in [ :cec17_10]
             for r in 1:10
                 fname = "csv/$(algorithm)-$(benchmark)-$(r).csv"
 
@@ -84,8 +85,33 @@ function gen_data_bcap()
 
 end
 
+
+function gen_table_bcap()
+
+    for algorithm in [ :DE, :ECA, :PSO]
+        @show algorithm
+        for benchmark in [ :cec17_10]
+            for r in 1:10
+                fname = "csv/$(algorithm)-$(benchmark)-$(r).csv"
+
+                res = load("output/$(algorithm)-$(benchmark)-$(r).jld")["result"]
+                p = res.best_sol.x
+
+                table = readdlm(fname, ',')
+                mm = median(table, dims=2)
+
+                print(r, " & ")
+                print(join(p, " & ") )
+                println(" & ", sum(mm .≈ 0.0), " \\\\ \\hline")
+            end
+        end
+    end
+
+
+end
+
 function main()
-    gen_data_irace()
+    gen_table_bcap()
 end
 
 
