@@ -88,21 +88,37 @@ end
 
 function gen_table_bcap()
 
-    for algorithm in [ :DE, :ECA, :PSO]
+    for algorithm in [:ABC, :DE, :ECA, :PSO]
         @show algorithm
         for benchmark in [ :cec17_10]
+            arr = []
+            tab = nothing
+            if algorithm == :ABC
+                tab = readdlm("irace_csv/bcap-$(algorithm)-$(benchmark).csv", ',')
+            end
             for r in 1:10
                 fname = "csv/$(algorithm)-$(benchmark)-$(r).csv"
 
-                res = load("output/$(algorithm)-$(benchmark)-$(r).jld")["result"]
-                p = res.best_sol.x
+                if algorithm == :ABC
+                    p = tab[r,:]
+                else
+                    res = load("output/$(algorithm)-$(benchmark)-$(r).jld")["result"]
+                    p = res.best_sol.x
+                end
 
                 table = readdlm(fname, ',')
                 mm = median(table, dims=2)
 
+                push!(arr, (p, sum(mm .≈ 0.0)))
+
+
+            end
+            sort!(arr, lt = (a, b) -> a[2] < b[2], rev = true)
+            for r in 1:10
+                p, mm = arr[r]
                 print(r, " & ")
                 print(join(p, " & ") )
-                println(" & ", sum(mm .≈ 0.0), " \\\\ \\hline")
+                println(" & ", mm, " \\\\ \\hline")
             end
         end
     end
@@ -110,8 +126,36 @@ function gen_table_bcap()
 
 end
 
+
+function gen_table_irace()
+    for algorithm in [:ABC, :ECA, :DE, :PSO]
+        for benchmark in [:cec17_10]
+            t = readdlm("irace_csv/irace-$(algorithm)-$(benchmark).csv", ',')
+            arr = []
+            @show algorithm
+            for r in 1:10
+                fname = "csv/irace-$(algorithm)-$(benchmark)-$(r).csv"
+
+                Φ = t[r,:]
+                table = readdlm(fname, ',')
+                mm = median(table, dims=2)
+
+                push!(arr, (Φ, sum(mm .≈ 0.0)))
+            end
+
+            sort!(arr, lt = (a, b) -> a[2] < b[2], rev = true)
+            for r in 1:10
+                p, mm = arr[r]
+                print(r, " & ")
+                print(join(p, " & ") )
+                println(" & ", mm, " \\\\ \\hline")
+            end
+        end
+    end
+end
+
 function main()
-    gen_table_bcap()
+    gen_table_irace()
 end
 
 
