@@ -2,6 +2,7 @@ using Bilevel
 using JLD
 import DelimitedFiles: writedlm, readdlm
 import Statistics: mean, median, std
+import Printf: @printf
 include("distributed.jl")
 addProcesses(3)
 
@@ -108,18 +109,22 @@ function gen_table_bcap()
 
                 table = readdlm(fname, ',')
                 mm = median(table, dims=2)
+                mmean = mean(mean(table, dims=2))
 
-                push!(arr, (p, sum(mm .≈ 0.0)))
+                push!(arr, (p, sum(mm .≈ 0.0), mmean))
 
 
             end
-            sort!(arr, lt = (a, b) -> a[2] < b[2], rev = true)
+            sort!(arr, lt = (a, b) -> a[2] < b[2] || (a[2] == b[2] && a[3] > b[3]), rev = true)
             for r in 1:10
-                p, mm = arr[r]
-                print(r, " & ")
+                p, mm, mmean = arr[r]
+                print("& ", r, " & ")
                 print(join(p, " & ") )
-                println(" & ", mm, " \\\\ \\hline")
+                print(" & ", mm)
+                @printf(" & %.3e \\\\\n", mmean)
+
             end
+            println(" \\hline")
         end
     end
 
@@ -139,17 +144,22 @@ function gen_table_irace()
                 Φ = t[r,:]
                 table = readdlm(fname, ',')
                 mm = median(table, dims=2)
+                mmean = mean(mean(table, dims=2))
 
-                push!(arr, (Φ, sum(mm .≈ 0.0)))
+                push!(arr, (Φ, sum(mm .≈ 0.0), mmean))
             end
 
-            sort!(arr, lt = (a, b) -> a[2] < b[2], rev = true)
+            sort!(arr, lt = (a, b) -> a[2] < b[2] || (a[2] == b[2] && a[3] > b[3]), rev = true)
             for r in 1:10
-                p, mm = arr[r]
-                print(r, " & ")
+                p, mm, mmean = arr[r]
+                print("& ", r, " & ")
                 print(join(p, " & ") )
-                println(" & ", mm, " \\\\ \\hline")
+                print(" & ", mm)
+                @printf(" & %.3e \\\\\n", mmean)
+
             end
+            println(" \\hline")
+
         end
     end
 end
