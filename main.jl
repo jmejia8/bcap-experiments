@@ -67,10 +67,10 @@ function main()
 
     !isdir("output") && mkdir("output")
 
-    runs = 10
+    runs = 1
     benchmark_name = :cec17_10
 
-    for a = [:ECA, :DE, :PSO, :GGA]
+    for a = [ :GGA]
         if a == :GGA
             benchmark_name = :BPP
         end
