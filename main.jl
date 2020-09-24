@@ -30,7 +30,7 @@ function F(x, y)
 end
 
 
-function run_experiment(algorithm, nrun, benchmark_name)
+function run_experiment(algorithm, nrun, benchmark_name, calls_per_instance=2000)
 
     @info("Initializing...")
 
@@ -49,7 +49,8 @@ function run_experiment(algorithm, nrun, benchmark_name)
     end
 
     bcap = BCAP_config(K_ll = 1)
-    res = configure(targetAlgorithm, parameters, benchmark, budget=200, debug = true, ul_func = F, bcap_config=bcap)
+    b = calls_per_instance ÷ length(benchmark)
+    res = configure(targetAlgorithm, parameters, benchmark, budget=b, debug = true, ul_func = F, bcap_config=bcap)
 
     display(res)
 
