@@ -1,6 +1,6 @@
 include("distributed.jl")
 
-addProcesses(4)
+addProcesses()
 
 @everywhere using BCAP
 @everywhere using Irace
@@ -8,7 +8,7 @@ addProcesses(4)
 
 
 
-function main(nrun = 1)
+function run_irace(nruns = 1)
 
     @everywhere benchmark = TestTargetAlgorithms.getBenchmark(:BPP)
     @everywhere bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(:GGA)
@@ -18,25 +18,13 @@ function main(nrun = 1)
         configuration = experiment[:configuration]
         Φ = Vector(configuration[1,:])
         value = targetAlgorithm(Φ, benchmark[instance], experiment[:seed])
+        sseed = experiment[:seed]
+        @show sseed
         return Dict(:cost => value)
     end
 
 
-    values = SharedArray{Float64}(length(benchmark))
-    targetRunnerParallel(experiments, the_target_runner, scenario) = begin
-        print(">>>>>>  I am parallel")
-        # if length(experiments) > length(benchmark)
-        #     values = SharedArray{Float64}(length(benchmark))
-        # end
-
-        for i in 1:length(experiments)
-            values[i] = target_runner(experiments[i], scenario)[:cost]
-        end
-
-        return [Dict(:cost => v) for v in Vector(values)[1:length(experiments)]]
-    end
-
-    parameters_table = """
+    @everywhere parameters_table = """
         P_size "" i (50, 400)
         p_m "" r (0, 0.9)
         p_c "" r (0, 0.6)
@@ -45,19 +33,32 @@ function main(nrun = 1)
         B_size "" r (0, 0.5)
         life_span "" i (1, 50)
     """
-    scenario = Dict( :targetRunner => target_runner,
-                     :targetRunnerParallel => targetRunnerParallel,
-                     :instances => collect( 1:length(benchmark) ),
-                  :maxExperiments => 500,
-                  # Do not create a logFile
-                  :logFile => "gga-test-$nrun.rdata")
+    @sync @distributed for nrun in 1:nruns
+        maxExperiments = 5000
+        print(">>>>>> RUN $nrun \t max experiments: $maxExperiments <<<<<<<<")
+        scenario = Dict( :targetRunner => target_runner,
+                         :instances => collect( 1:length(benchmark) ),
+                         :maxExperiments => maxExperiments,
+                         :digits => 6,
+                         :deterministic => 1,
+                         :logFile => "gga-run$(nrun)-exprmts$(maxExperiments).rdata")
 
-    # Irace.checkIraceScenario(scenario, parameters_table)
-    # get the results
-    tuned = Irace.irace(scenario, parameters_table)
+        # Irace.checkIraceScenario(scenario, parameters_table)
+        # get the results
+        tuned = Irace.irace(scenario, parameters_table)
 
-    # print the best configurations
-    # Irace.configurations_print(tuned)
+        println("========================================================")
+        println("========================================================")
+        println("===================== RUN $nrun ============================")
+        println("========================================================")
+        println("========================================================")
+        # print the best configuration
+        Irace.configurations_print(tuned)
+    end
+end
+
+function main()
+    run_irace(10)
 end
 
 main()
