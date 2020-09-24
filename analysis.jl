@@ -24,10 +24,10 @@ function getBenchmark(benchmark_name)
     benchmark
 end
 
-function gen_data(Φ, algorithm, benchmark)
+function gen_data(Φ, algorithm, benchmark, ncalls = 31)
     bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(algorithm)
-    a = SharedArray{Float64}(10, 31)
-    arr = BCAP.call_target_algorithm(targetAlgorithm, Φ, benchmark, calls_per_instance= 31, Errors_shared = a)
+    a = SharedArray{Float64}(length(benchmark), ncalls)
+    arr = BCAP.call_target_algorithm(targetAlgorithm, Φ, benchmark, calls_per_instance= ncalls, Errors_shared = a)
     display(arr)
     arr
 end
@@ -169,4 +169,7 @@ function main()
 end
 
 
-main()
+# main()
+Φ = [187, 0.4706, 0.5378, 6,    2, 0.3309, 21] # irace (33)
+r = gen_data(Φ, :GGA, getBenchmark(:BPP), 1)
+@show (length(r))
