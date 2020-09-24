@@ -17,9 +17,7 @@ function run_irace(nruns = 1)
         instance = experiment[:instance]
         configuration = experiment[:configuration]
         Φ = Vector(configuration[1,:])
-        value = targetAlgorithm(Φ, benchmark[instance], experiment[:seed])
-        sseed = experiment[:seed]
-        @show sseed
+        value = targetAlgorithm(Φ, benchmark[instance], 1)
         return Dict(:cost => value)
     end
 
