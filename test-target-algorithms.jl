@@ -49,7 +49,7 @@ function getBenchmark(p::Symbol)
 
     for i = 1:length(nams)
 
-        push!(benchmark, Instance(ops[i], " --max_gen 50 --instance /home/jesus/develop/repos/GGA-CGT/instances/$(nams[i])", i))
+        push!(benchmark, Instance(ops[i], " --max_gen 100 --instance $(homedir())/develop/repos/GGA-CGT/instances/$(nams[i])", i))
 
     end
 
