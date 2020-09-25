@@ -3,6 +3,8 @@ module TestTargetAlgorithms
 using Metaheuristics
 import Random: seed!
 import ...Instance
+using DataFrames
+import CSV
 
 const desired_accu = 1e-4
 
@@ -22,11 +24,19 @@ function getBenchmark(D::Int)
     benchmark
 end
 
-function getBenchmark(p::Symbol)
-    if p != :BPP
-        error("Instance for BPP")
+
+function gen_bpp_instance(instance_file, optimum, i)
+    fname = "$(homedir())/develop/repos/GGA-CGT/instances/" * replace(instance_file, " " => "")
+
+    if !isfile(fname)
+        error(fname * " is not a file")
     end
 
+    str = " --max_gen 100 --instance " * fname
+    Instance(optimum, str, i)
+end
+
+function get_test_bpp_instances()
     benchmark = Instance[]
     nams = ["N2c2w1_s.txt","N2c3w2_d.txt","N2c3w2_l.txt","N2c3w2_s.txt","N2c3w4_a.txt",
     "N3c1w1_o.txt","N3c3w2_b.txt","N3c3w2_h.txt","N3c3w4_c.txt","N4c3w2_a.txt",
@@ -49,12 +59,30 @@ function getBenchmark(p::Symbol)
 
     for i = 1:length(nams)
 
-        push!(benchmark, Instance(ops[i], " --max_gen 100 --instance $(homedir())/develop/repos/GGA-CGT/instances/$(nams[i])", i))
+        push!(benchmark, gen_bpp_instance(nams[i], ops[i], i))
 
     end
 
 
     benchmark
+end
+
+function getBenchmark(p::Symbol, dataset = :train)
+    if p != :BPP
+        error("Instance for BPP")
+    end
+
+    if dataset == :train
+        return get_test_bpp_instances()
+    end
+
+    benchmark = Instance[]
+
+    tab = CSV.read("bpp-instances.csv", DataFrame)
+    for i in 1:nrow(tab)
+        push!(benchmark, gen_bpp_instance(tab[i, 1], tab[i, 2], i))
+    end
+    return benchmark
 end
 
 #                    N    Ne   limit
@@ -164,7 +192,7 @@ end
 
 function GGA_target(Φ, instance, seed = 0)
     flags = ["--P_size", "--p_m","--p_c", "--k_ncs", "--k_cs","--B_size","--life_span"]
-    shell_target(Φ, instance, seed; exe="GGA-CGT", exe_path="/home/jesus/develop/repos/GGA-CGT", flags=flags)
+    shell_target(Φ, instance, seed; exe="GGA-CGT", exe_path="$(homedir())/develop/repos/GGA-CGT", flags=flags)
 end
 
 function shell_target(Φ, instance, seed=0; exe = "", exe_path = "", flags = String[], seed_flag="--seed")
