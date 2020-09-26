@@ -72,7 +72,7 @@ function gen_data_irace_gga()
     benchmark = :BPP
     !isdir("csv") && mkdir("csv")
     t = CSV.read("csv/irace-$(algorithm)-$(benchmark).csv", DataFrame)
-    for r in 1:2
+    for r in 1:10
         fname = "csv/irace-bpp-$(algorithm)-$(benchmark)-$(r).csv"
 
         isfile(fname) && continue
@@ -81,7 +81,7 @@ function gen_data_irace_gga()
         @show(Φ)
 
         b = TestTargetAlgorithms.getBenchmark(benchmark, :test)
-        print("|benchmark| = ", length(b))
+        println("|benchmark| = ", length(b))
         arr = gen_data(Φ, algorithm, b)
         @show sum(arr)
         writedlm(fname, arr, ',' )
