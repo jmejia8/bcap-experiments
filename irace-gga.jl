@@ -5,6 +5,8 @@ addProcesses()
 @everywhere using BCAP
 @everywhere using Irace
 @everywhere include("test-target-algorithms.jl")
+using DataFrames
+import CSV
 
 
 
@@ -55,8 +57,42 @@ function run_irace(nruns = 1)
     end
 end
 
+function gen_data(Φ, algorithm, benchmark)
+    bounds, parmstype, targetAlgorithm = TestTargetAlgorithms.getTargetAlgorithm(algorithm)
+    a = SharedArray{Float64}(length(benchmark))
+    arr = BCAP.call_target_algorithm(targetAlgorithm, Φ, benchmark,
+                                    calls_per_instance = 1,
+                                    seed = 1,
+                                    Errors_shared = a)
+    arr
+end
+
+function gen_data_irace_gga()
+    algorithm = :GGA
+    benchmark = :BPP
+    !isdir("csv") && mkdir("csv")
+    t = CSV.read("csv/irace-$(algorithm)-$(benchmark).csv", DataFrame)
+    for r in 1:2
+        fname = "csv/irace-bpp-$(algorithm)-$(benchmark)-$(r).csv"
+
+        isfile(fname) && continue
+        @info("Generating $fname")
+        Φ = Vector(t[r,:])
+        @show(Φ)
+
+        b = TestTargetAlgorithms.getBenchmark(benchmark, :test)
+        print("|benchmark| = ", length(b))
+        arr = gen_data(Φ, algorithm, b)
+        @show sum(arr)
+        writedlm(fname, arr, ',' )
+
+        println("--------------------")
+    end
+end
+
 function main()
-    run_irace(10)
+    gen_data_irace_gga()
+    # run_irace(10)
 end
 
 main()
