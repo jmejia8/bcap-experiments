@@ -32,7 +32,7 @@ function gen_bpp_instance(instance_file, optimum, i)
         error(fname * " is not a file")
     end
 
-    str = " --max_gen 100 --instance " * fname
+    str = " --max_gen 100 --instance " * fname * " "
     Instance(optimum, str, i)
 end
 
