@@ -26,11 +26,11 @@ function F(x, y)
         m[I] = min.(999.0, m[I])
 
 
-        mean(m) + 1e3sum(not_solved) + r
+        mean(m) + 1e2sum(not_solved) + r
 end
 
 
-function run_experiment(algorithm, nrun, benchmark_name, calls_per_instance=2000)
+function run_experiment(algorithm, nrun, benchmark_name, calls_per_instance=4000)
 
     @info("Initializing...")
 
@@ -48,9 +48,12 @@ function run_experiment(algorithm, nrun, benchmark_name, calls_per_instance=2000
         benchmark = TestTargetAlgorithms.getBenchmark(:BPP)
     end
 
-    bcap = BCAP_config(K_ll = 1)
-    b = calls_per_instance ÷ length(benchmark)
-    res = configure(targetAlgorithm, parameters, benchmark, budget=b, debug = true, ul_func = F, bcap_config=bcap)
+    bcap = BCAP_config(N = 10)
+    b = calls_per_instance
+    res = configure(targetAlgorithm, parameters, benchmark, budget=b,
+                        debug = true,
+                        ul_func = F,
+                        bcap_config=bcap)
 
     display(res)
 
@@ -88,7 +91,7 @@ function main()
             println("========================================")
             println(a, t)
             println("========================================")
-            res = run_experiment(a, t, benchmark_name)
+            res = run_experiment(a, t, benchmark_name, 2000)
             @info "Saving in "
             println(fname)
 
