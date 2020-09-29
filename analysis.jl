@@ -63,10 +63,10 @@ function gen_data_bcap()
     println("=======================================")
     println("=======================================")
 
-    for algorithm in [:DE, :PSO, :ECA]
-        for benchmark in [ :cec17_10]
+    for algorithm in [:GGA]
+        for benchmark in [ :BPP]
             for r in 1:10
-                fname = "csv/$(algorithm)-$(benchmark)-$(r).csv"
+                fname = "csv/bcap-$(algorithm)-$(benchmark)-$(r).csv"
 
                 isfile(fname) && continue
                 @info("Generating $fname")
@@ -75,7 +75,7 @@ function gen_data_bcap()
 
                 @show(res.best_sol.x)
 
-                arr = gen_data(res.best_sol.x, algorithm, getBenchmark(benchmark))
+                arr = gen_data(res.best_sol.x, algorithm, getBenchmark(benchmark, :test, 1))
                 writedlm(fname, arr, ',' )
 
                 println("--------------------")
@@ -89,16 +89,16 @@ end
 
 function gen_table_bcap()
 
-    for algorithm in [:ABC, :DE, :ECA, :PSO]
+    for algorithm in [:GGA]
         @show algorithm
-        for benchmark in [ :cec17_10]
+        for benchmark in [ :BPP]
             arr = []
             tab = nothing
             if algorithm == :ABC
                 tab = readdlm("irace_csv/bcap-$(algorithm)-$(benchmark).csv", ',')
             end
             for r in 1:10
-                fname = "csv/$(algorithm)-$(benchmark)-$(r).csv"
+                fname = "csv/bcap-$(algorithm)-$(benchmark)-$(r).csv"
 
                 if algorithm == :ABC
                     p = tab[r,:]
@@ -132,7 +132,7 @@ function gen_table_bcap()
 end
 
 
-function gen_table_irace()
+function gen_table_bcap()
     for algorithm in [:ABC, :ECA, :DE, :PSO]
         for benchmark in [:cec17_10]
             t = readdlm("irace_csv/irace-$(algorithm)-$(benchmark).csv", ',')
@@ -165,11 +165,11 @@ function gen_table_irace()
 end
 
 function main()
-    gen_table_irace()
+    @info("gen csv")
+    gen_data_bcap()
+    @info("gen table")
+    gen_table_bcap()
 end
 
 
-# main()
-Φ = [187, 0.4706, 0.5378, 6,    2, 0.3309, 21] # irace (33)
-r = gen_data(Φ, :GGA, getBenchmark(:BPP), 1)
-@show (length(r))
+main()
